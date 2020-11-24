@@ -63,9 +63,9 @@ defmodule TriceImgDownloader.DownloadAgent do
 
               with base_path <- Application.get_env(:trice_img_downloader, :config_root),
                    size <- Application.get_env(:trice_img_downloader, :img_size, "large"),
-                   folder <- "#{base_path}/pics/downloadedPics/#{set_name}/",
+                   folder <- "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/",
                    path <-
-                     "#{base_path}/pics/downloadedPics/#{set_name}/#{normalize(card.name)}.jpg",
+                     "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/#{normalize(card.name)}.jpg",
                    :ok <- File.mkdir_p(folder),
                    {:ok, file} <- File.open(path, [:write, :exclusive, :binary]),
                    %{} = art_uris <- get_info(set),
@@ -118,4 +118,7 @@ defmodule TriceImgDownloader.DownloadAgent do
     # Who/What/When/Where/Why
     |> String.replace("/", " ")
   end
+
+  defp set_normalize("CON"), do: "CON_"
+  defp set_normalize(set_name), do: set_name
 end
