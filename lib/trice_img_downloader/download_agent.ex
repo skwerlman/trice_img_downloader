@@ -67,10 +67,11 @@ defmodule TriceImgDownloader.DownloadAgent do
                    path <-
                      "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/#{normalize(card.name)}.jpg",
                    :ok <- File.mkdir_p(folder),
-                   {:ok, file} <- File.open(path, [:write, :exclusive, :binary]),
                    %{} = art_uris <- get_info(set),
-                   {:ok, blob} <- download(art_uris, size) do
+                   {:ok, blob} <- download(art_uris, size),
+                   {:ok, file} <- File.open(path, [:write, :exclusive, :binary]) do
                 IO.binwrite(file, blob)
+                File.close(file)
               else
                 {:error, :eexist} ->
                   warn(["Skipping download for already downloaded card: ", card.name])
