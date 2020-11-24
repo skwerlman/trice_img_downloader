@@ -9,24 +9,24 @@ defmodule TriceImgDownloader.ConfigServer do
           priorities :: Keyword.t(integer())
         }
 
-  @config_folder Application.get_env(:trice_img_downloader, :config_root)
-  @database_settings Path.join([
-                       @config_folder,
-                       Application.get_env(:trice_img_downloader, :database_settings)
-                     ])
-
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
   @impl GenServer
-  @spec init(cfg :: map()) :: {:ok, state}
-  def init(_) do
+  @spec init(config_folder :: Path.t()) :: {:ok, state}
+  def init(config_folder) do
     info("Starting...")
+
+    database_settings =
+      Path.join([
+        config_folder,
+        Application.get_env(:trice_img_downloader, :database_settings)
+      ])
 
     send(self(), :STARTUP)
 
-    {:ok, {@database_settings, false, []}}
+    {:ok, {database_settings, false, []}}
   end
 
   @impl GenServer

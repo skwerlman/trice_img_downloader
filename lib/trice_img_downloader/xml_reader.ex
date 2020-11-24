@@ -4,9 +4,6 @@ defmodule TriceImgDownloader.XMLReader do
   use GenServer
   use TriceImgDownloader.LogMacros
 
-  @config_folder Application.get_env(:trice_img_downloader, :config_root)
-  @xml_paths Application.get_env(:trice_img_downloader, :xmls)
-             |> Enum.map(fn {name, needed} -> {Path.join([@config_folder, name]), needed} end)
   @batch_size 10
 
   def start_link(arg) do
@@ -15,12 +12,16 @@ defmodule TriceImgDownloader.XMLReader do
 
   @impl GenServer
   @spec init(any) :: {:ok, any}
-  def init(_) do
+  def init(cfg_root) do
     info("Starting...")
+
+    xml_paths =
+      Application.get_env(:trice_img_downloader, :xmls)
+      |> Enum.map(fn {name, needed} -> {Path.join([cfg_root, name]), needed} end)
 
     send(self(), :STARTUP)
 
-    {:ok, @xml_paths}
+    {:ok, {xml_paths, [], []}}
   end
 
   @impl GenServer
