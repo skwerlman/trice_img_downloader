@@ -55,17 +55,6 @@ defmodule TriceImgDownloader.Scryfall.Api do
 
     "/cards/#{uuid}"
     |> get(query: query)
-    # |> decode_json()
     |> handle_errors()
-  end
-
-  defp decode_json(res) do
-    case res do
-      {:ok, resp} ->
-        {:ok, Map.update!(resp, :body, Jason.decode!(resp.body))}
-
-      _ ->
-        res
-    end
   end
 end
