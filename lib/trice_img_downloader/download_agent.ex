@@ -19,13 +19,13 @@ defmodule TriceImgDownloader.DownloadAgent do
   end
 
   @impl GenServer
-  def handle_cast({:queue, card}, queue) do
+  def handle_call({:queue, card}, _from, queue) do
     if Enum.empty?(queue) do
       info("New items in queue, resuming downloads...")
       Process.send_after(self(), :download_one, 25)
     end
 
-    {:noreply, Qex.push(queue, card)}
+    {:reply, :ok, Qex.push(queue, card)}
   end
 
   @impl GenServer
@@ -65,7 +65,9 @@ defmodule TriceImgDownloader.DownloadAgent do
                    size <- Application.get_env(:trice_img_downloader, :img_size, "large"),
                    folder <- "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/",
                    path <-
-                     "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/#{normalize(card.name)}.jpg",
+                     "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/#{
+                       normalize(card.name)
+                     }.jpg",
                    :ok <- File.mkdir_p(folder),
                    %{} = art_uris <- get_info(set),
                    {:ok, blob} <- download(art_uris, size),
@@ -85,7 +87,8 @@ defmodule TriceImgDownloader.DownloadAgent do
           end
 
         :empty ->
-          info("Download queue is empty, waiting...")
+          info("Download queue is empty, asking XMLReader for more...")
+          Process.send(TriceImgDownloader.XMLReader, :dispatch_some, [])
           queue
       end
 

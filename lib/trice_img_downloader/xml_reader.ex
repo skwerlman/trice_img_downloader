@@ -7,6 +7,7 @@ defmodule TriceImgDownloader.XMLReader do
   @config_folder Application.get_env(:trice_img_downloader, :config_root)
   @xml_paths Application.get_env(:trice_img_downloader, :xmls)
              |> Enum.map(fn {name, needed} -> {Path.join([@config_folder, name]), needed} end)
+  @batch_size 10
 
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg, name: __MODULE__)
@@ -23,47 +24,72 @@ defmodule TriceImgDownloader.XMLReader do
   end
 
   @impl GenServer
-  def handle_info(:STARTUP, []) do
-    {:noreply, []}
+  def handle_info(:STARTUP, {[], _, _} = state) do
+    send(self(), :dispatch_some)
+    {:noreply, state}
   end
 
-  def handle_info(:STARTUP, [{xml_path, needed} | paths]) do
+  def handle_info(:STARTUP, {[{xml_path, needed} | paths], ostream, handles}) do
     send(self(), :STARTUP)
 
-    if File.exists?(xml_path) do
-      debug(["Processesing ", xml_path])
+    {stream, handle} =
+      if File.exists?(xml_path) do
+        debug(["Processesing ", xml_path])
 
-      :ok =
-        xml_path
-        |> File.stream!()
-        |> SweetXml.stream_tags([:card], namespace_conformant: true, discard: [:sets, :card])
-        |> Stream.map(fn {_, doc} ->
-          SweetXml.xpath(
-            doc,
-            ~x".",
-            name: ~x"./name/text()"s,
-            sets: [
-              ~x"./set"l,
-              name: ~x"./text()"s,
-              uuid: ~x"./@uuid"s,
-              muid: ~x"./@muid"s,
-              picurl: ~x"./@picURL"s
-            ]
-          )
-        end)
-        |> Enum.each(fn card ->
-          GenServer.cast(TriceImgDownloader.DownloadAgent, {:queue, card})
-        end)
+        handle = File.stream!(xml_path)
 
-      debug("Done.")
-    else
-      case needed do
-        :required -> raise "Cannot find file: #{xml_path}"
-        :optional -> warn(["Cannot find file: ", xml_path])
+        stream =
+          handle
+          |> SweetXml.stream_tags([:card], namespace_conformant: true, discard: [:sets, :card])
+          |> Stream.map(fn {_, doc} ->
+            SweetXml.xpath(
+              doc,
+              ~x".",
+              name: ~x"./name/text()"s,
+              sets: [
+                ~x"./set"l,
+                name: ~x"./text()"s,
+                uuid: ~x"./@uuid"s,
+                muid: ~x"./@muid"s,
+                picurl: ~x"./@picURL"s
+              ]
+            )
+          end)
+          |> Stream.concat(ostream)
+
+        {stream, handle}
+      else
+        case needed do
+          :required -> raise "Cannot find file: #{xml_path}"
+          :optional -> warn(["Cannot find file: ", xml_path])
+        end
+
+        {ostream, nil}
       end
+
+    {:noreply, {paths, stream, if(handle, do: [handle | handles], else: handles)}}
+  end
+
+  def handle_info(:dispatch_some, {paths, ostream, handles}) do
+    stream = Stream.drop(ostream, @batch_size)
+
+    cards =
+      ostream
+      |> Enum.take(@batch_size)
+
+    if Enum.empty?(cards) do
+      info("Finished reading XMLs")
+
+      for handle <- handles do
+        File.close(handle)
+      end
+    else
+      Enum.each(cards, fn card ->
+        GenServer.call(TriceImgDownloader.DownloadAgent, {:queue, card})
+      end)
     end
 
-    {:noreply, paths}
+    {:noreply, {paths, stream, handles}}
   end
 
   # def handle_info(:RELOAD, state) do
