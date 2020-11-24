@@ -4,18 +4,31 @@
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `trice_img_downloader` to your list of dependencies in `mix.exs`:
+First, (install elixir)[https://elixir-lang.org/install.html]
 
-```elixir
-def deps do
-  [
-    {:trice_img_downloader, "~> 0.1.0"}
-  ]
-end
+Once elixir is installed, and `mix` is available on your path, run the following commands:
+
+Install Hex.pm support:
+```
+mix hex.local
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/trice_img_downloader](https://hexdocs.pm/trice_img_downloader).
+Download and compile dependancies:
+```
+mix deps.get
+mix deps.compile
+```
 
+Compile the program:
+```
+mix compile
+```
+
+## Running
+
+Until we have release support set up, run the following to start the downloader:
+```
+mix run --no-halt
+```
+
+The downloader does not currently automatically exit when done, so you'll need to kill it by pressing `Ctrl+C` twice
