@@ -88,7 +88,7 @@ defmodule TriceImgDownloader.DownloadAgent do
 
         :empty ->
           info("Download queue is empty, asking XMLReader for more...")
-          Process.send(TriceImgDownloader.XMLReader, :dispatch_some, [])
+          send(TriceImgDownloader.XMLReader, :dispatch_some)
           queue
       end
 
