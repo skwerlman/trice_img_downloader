@@ -21,7 +21,7 @@ defmodule TriceImgDownloader.XMLReader do
 
     send(self(), :STARTUP)
 
-    {:ok, {xml_paths, [], []}}
+    {:ok, {xml_paths, {[], 0}, []}}
   end
 
   @impl GenServer
@@ -30,7 +30,7 @@ defmodule TriceImgDownloader.XMLReader do
     {:noreply, state}
   end
 
-  def handle_info(:STARTUP, {[{xml_path, needed} | paths], ostream, handles}) do
+  def handle_info(:STARTUP, {[{xml_path, needed} | paths], {ostream, _}, handles}) do
     send(self(), :STARTUP)
 
     {stream, handle} =
@@ -68,14 +68,13 @@ defmodule TriceImgDownloader.XMLReader do
         {ostream, nil}
       end
 
-    {:noreply, {paths, stream, if(handle, do: [handle | handles], else: handles)}}
+    {:noreply, {paths, {stream, 0}, if(handle, do: [handle | handles], else: handles)}}
   end
 
-  def handle_info(:dispatch_some, {paths, ostream, handles}) do
-    stream = Stream.drop(ostream, @batch_size)
-
+  def handle_info(:dispatch_some, {paths, {stream, dropped}, handles}) do
     cards =
-      ostream
+      stream
+      |> Stream.drop(dropped)
       |> Enum.take(@batch_size)
 
     if Enum.empty?(cards) do
@@ -90,7 +89,7 @@ defmodule TriceImgDownloader.XMLReader do
       end)
     end
 
-    {:noreply, {paths, stream, handles}}
+    {:noreply, {paths, {stream, dropped + @batch_size}, handles}}
   end
 
   # def handle_info(:RELOAD, state) do
