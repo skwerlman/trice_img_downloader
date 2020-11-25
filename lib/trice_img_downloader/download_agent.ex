@@ -19,13 +19,13 @@ defmodule TriceImgDownloader.DownloadAgent do
   end
 
   @impl GenServer
-  def handle_call({:queue, card}, _from, queue) do
+  def handle_cast({:queue, card}, queue) do
     if Enum.empty?(queue) do
       info("New items in queue, resuming downloads...")
-      Process.send_after(self(), :download_one, 25)
+      send(self(), :download_one)
     end
 
-    {:reply, :ok, Qex.push(queue, card)}
+    {:noreply, Qex.push(queue, card)}
   end
 
   @impl GenServer
@@ -34,7 +34,6 @@ defmodule TriceImgDownloader.DownloadAgent do
       case Qex.first(queue) do
         {:value, card} ->
           info(["Downloading image for ", card.name])
-          t = Process.send_after(self(), :download_one, 200)
 
           sets =
             card.sets
@@ -46,13 +45,13 @@ defmodule TriceImgDownloader.DownloadAgent do
 
           case response do
             :try_later ->
-              Process.cancel_timer(t)
               Process.send_after(self(), :download_one, 2000)
               queue
 
             :none ->
               debug(["No enabled sets for ", card.name])
               {_, q} = Qex.pop!(queue)
+              send(self(), :download_one)
               q
 
             set_name ->
@@ -84,6 +83,7 @@ defmodule TriceImgDownloader.DownloadAgent do
               end
 
               {_, q} = Qex.pop!(queue)
+              send(self(), :download_one)
               q
           end
 
@@ -108,6 +108,7 @@ defmodule TriceImgDownloader.DownloadAgent do
   defp get_info(%{picurl: uri}) when is_binary(uri) and uri != "" do
     uri
   end
+
   defp get_info(spec) do
     error(["No implemented download method for ID specification: ", inspect(spec)])
     {:error, :no_method}

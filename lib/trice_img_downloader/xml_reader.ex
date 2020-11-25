@@ -86,7 +86,7 @@ defmodule TriceImgDownloader.XMLReader do
       end
     else
       Enum.each(cards, fn card ->
-        GenServer.call(TriceImgDownloader.DownloadAgent, {:queue, card})
+        GenServer.cast(TriceImgDownloader.DownloadAgent, {:queue, card})
       end)
     end
 
