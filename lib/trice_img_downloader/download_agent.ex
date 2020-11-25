@@ -69,7 +69,8 @@ defmodule TriceImgDownloader.DownloadAgent do
                        normalize(card.name)
                      }.jpg",
                    :ok <- File.mkdir_p(folder),
-                   %{} = art_uris <- get_info(set),
+                   art_uris when is_binary(art_uris) or is_map_key(art_uris, size) <-
+                     get_info(set),
                    {:ok, blob} <- download(art_uris, size),
                    {:ok, file} <- File.open(path, [:write, :exclusive, :binary]) do
                 IO.binwrite(file, blob)
@@ -95,7 +96,7 @@ defmodule TriceImgDownloader.DownloadAgent do
     {:noreply, q2}
   end
 
-  defp get_info(%{uuid: uuid}) when not is_nil(uuid) and uuid != "" do
+  defp get_info(%{uuid: uuid}) when is_binary(uuid) and uuid != "" do
     with {:ok, res} <- Api.cards(uuid, []),
          body <- res.body do
       body["image_uris"]
@@ -104,12 +105,23 @@ defmodule TriceImgDownloader.DownloadAgent do
     end
   end
 
+  defp get_info(%{picurl: uri}) when is_binary(uri) and uri != "" do
+    uri
+  end
   defp get_info(spec) do
     error(["No implemented download method for ID specification: ", inspect(spec)])
     {:error, :no_method}
   end
 
-  defp download(uris, size) do
+  defp download(uri, _) when is_binary(uri) do
+    with {:ok, res} <- Api.image(uri) do
+      {:ok, res.body}
+    else
+      resp -> resp
+    end
+  end
+
+  defp download(uris, size) when is_map(uris) do
     with uri when not is_nil(uri) <- uris[size],
          {:ok, res} <- Api.image(uri) do
       {:ok, res.body}
