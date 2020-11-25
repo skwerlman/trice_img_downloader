@@ -95,13 +95,18 @@ defmodule TriceImgDownloader.DownloadAgent do
     {:noreply, q2}
   end
 
-  defp get_info(%{uuid: uuid}) do
+  defp get_info(%{uuid: uuid}) when not is_nil(uuid) and uuid != "" do
     with {:ok, res} <- Api.cards(uuid, []),
          body <- res.body do
       body["image_uris"]
     else
       resp -> resp
     end
+  end
+
+  defp get_info(spec) do
+    error(["No implemented download method for ID specification: ", inspect(spec)])
+    {:error, :no_method}
   end
 
   defp download(uris, size) do
