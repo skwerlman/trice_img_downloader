@@ -26,6 +26,7 @@ defmodule TriceImgDownloader.MixProject do
       {:ex_rated, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:qex, "~> 0.5"},
+      {:stream_split, "~> 0.1"},
       {:sweet_xml, "~> 0.6"},
       {:tesla, "~> 1.4"},
       {:dialyxir, "~> 1.0", runtime: false, only: [:dev, :test]},

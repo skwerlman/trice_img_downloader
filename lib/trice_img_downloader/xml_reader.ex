@@ -21,7 +21,7 @@ defmodule TriceImgDownloader.XMLReader do
 
     send(self(), :STARTUP)
 
-    {:ok, {xml_paths, {[], 0}, []}}
+    {:ok, {xml_paths, [], []}}
   end
 
   @impl GenServer
@@ -30,7 +30,7 @@ defmodule TriceImgDownloader.XMLReader do
     {:noreply, state}
   end
 
-  def handle_info(:STARTUP, {[{xml_path, needed} | paths], {ostream, _}, handles}) do
+  def handle_info(:STARTUP, {[{xml_path, needed} | paths], ostream, handles}) do
     send(self(), :STARTUP)
 
     {stream, handle} =
@@ -41,8 +41,16 @@ defmodule TriceImgDownloader.XMLReader do
 
         stream =
           handle
-          |> SweetXml.stream_tags([:card], namespace_conformant: true, discard: [:sets, :card])
-          |> Stream.map(fn {_, doc} ->
+          |> SweetXml.stream_tags([:card],
+            namespace_conformant: true,
+            discard: [:sets, :cards, :info, :prop, :text]
+          )
+          # We have to be eager here
+          # If we use a stream instead,
+          # GenServer incorrectly captures
+          # a :wait message meant for the
+          # stream_tags iterator
+          |> Enum.map(fn {_, doc} ->
             SweetXml.xpath(
               doc,
               ~x".",
@@ -68,14 +76,13 @@ defmodule TriceImgDownloader.XMLReader do
         {ostream, nil}
       end
 
-    {:noreply, {paths, {stream, 0}, if(handle, do: [handle | handles], else: handles)}}
+    {:noreply, {paths, stream, if(handle, do: [handle | handles], else: handles)}}
   end
 
-  def handle_info(:dispatch_some, {paths, {stream, dropped}, handles}) do
-    cards =
+  def handle_info(:dispatch_some, {paths, stream, handles}) do
+    {cards, rest} =
       stream
-      |> Stream.drop(dropped)
-      |> Enum.take(@batch_size)
+      |> StreamSplit.take_and_drop(@batch_size)
 
     if Enum.empty?(cards) do
       info("Finished reading XMLs")
@@ -89,7 +96,12 @@ defmodule TriceImgDownloader.XMLReader do
       end)
     end
 
-    {:noreply, {paths, {stream, dropped + @batch_size}, handles}}
+    {:noreply, {paths, rest, handles}}
+  end
+
+  def handle_info(event, state) do
+    warn(["Unexpected event: ", inspect(event)])
+    {:noreply, state}
   end
 
   # def handle_info(:RELOAD, state) do
