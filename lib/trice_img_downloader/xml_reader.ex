@@ -18,18 +18,16 @@ defmodule TriceImgDownloader.XMLReader do
     xml_paths =
       Application.get_env(:trice_img_downloader, :xmls)
       |> Stream.map(fn {name, needed} -> {Path.join([cfg_root, name]), needed} end)
-      |> Enum.sort_by(
-        fn {path, _} ->
-          case File.stat(path) do
-            {:ok, %{size: size}} ->
-              size
+      |> Enum.sort_by(fn {path, _} ->
+        case File.stat(path) do
+          {:ok, %{size: size}} ->
+            size
 
-            {:error, reason} ->
-              warn(["Failed to stat file: ", path, "\nReason: ", inspect(reason)])
-              0
-          end
+          {:error, reason} ->
+            warn(["Failed to stat file: ", path, "\nReason: ", inspect(reason)])
+            0
         end
-      )
+      end)
 
     send(self(), :STARTUP)
 
@@ -51,7 +49,7 @@ defmodule TriceImgDownloader.XMLReader do
 
         handle = File.stream!(xml_path)
 
-        stream =
+        cards =
           handle
           |> SweetXml.stream_tags([:card],
             namespace_conformant: true,
@@ -76,6 +74,11 @@ defmodule TriceImgDownloader.XMLReader do
               ]
             )
           end)
+
+        GenServer.cast(TriceImgDownloader.StatServer, {:loaded_cards, Enum.count(cards)})
+
+        stream =
+          cards
           |> Stream.concat(ostream)
 
         {stream, handle}

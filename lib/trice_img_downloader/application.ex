@@ -11,10 +11,11 @@ defmodule TriceImgDownloader.Application do
     info("starting #{to_string(__MODULE__)}")
 
     children = [
+      TriceImgDownloader.StatServer,
       {TriceImgDownloader.ConfigServer, config_root},
       TriceImgDownloader.Scryfall,
       {TriceImgDownloader.XMLReader, config_root},
-      TriceImgDownloader.DownloadAgent,
+      TriceImgDownloader.DownloadAgent
     ]
 
     opts = [strategy: :one_for_one, name: TriceImgDownloader.Supervisor]
