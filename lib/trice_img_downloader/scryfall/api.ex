@@ -6,7 +6,7 @@ defmodule TriceImgDownloader.Scryfall.Api do
   @type error :: {:error, reason :: String.t(), type :: String.t()}
 
   plug(TriceImgDownloader.Ratelimiter.Middleware, {:scryfall_bucket, 1000, 10})
-  plug(TriceImgDownloader.Scryfall.Cache.Middleware)
+  # plug(TriceImgDownloader.Scryfall.Cache.Middleware)
   plug(Tesla.Middleware.BaseUrl, @scryfall_uri)
   plug(Tesla.Middleware.Timeout, timeout: 4000)
   plug(Tesla.Middleware.Retry, delay: 125, max_retries: 3)
