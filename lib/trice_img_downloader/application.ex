@@ -13,8 +13,8 @@ defmodule TriceImgDownloader.Application do
     children = [
       {TriceImgDownloader.ConfigServer, config_root},
       TriceImgDownloader.Scryfall,
+      {TriceImgDownloader.XMLReader, config_root},
       TriceImgDownloader.DownloadAgent,
-      {TriceImgDownloader.XMLReader, config_root}
     ]
 
     opts = [strategy: :one_for_one, name: TriceImgDownloader.Supervisor]
