@@ -17,7 +17,19 @@ defmodule TriceImgDownloader.XMLReader do
 
     xml_paths =
       Application.get_env(:trice_img_downloader, :xmls)
-      |> Enum.map(fn {name, needed} -> {Path.join([cfg_root, name]), needed} end)
+      |> Stream.map(fn {name, needed} -> {Path.join([cfg_root, name]), needed} end)
+      |> Enum.sort_by(
+        fn {path, _} ->
+          case File.stat(path) do
+            {:ok, %{size: size}} ->
+              size
+
+            {:error, reason} ->
+              warn(["Failed to stat file: ", path, "\nReason: ", inspect(reason)])
+              0
+          end
+        end
+      )
 
     send(self(), :STARTUP)
 
