@@ -4,7 +4,7 @@ defmodule TriceImgDownloader.XMLReader do
   use GenServer
   use TriceImgDownloader.LogMacros
 
-  @batch_size 10
+  @batch_size 100
 
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg, name: __MODULE__)
