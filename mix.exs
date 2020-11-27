@@ -25,6 +25,7 @@ defmodule TriceImgDownloader.MixProject do
       {:configparser_ex, "~> 4.0"},
       {:ex_rated, "~> 2.0"},
       {:jason, "~> 1.2"},
+      {:logger_file_backend, "~> 0.0"},
       {:qex, "~> 0.5"},
       {:stream_split, "~> 0.1"},
       {:sweet_xml, "~> 0.6"},

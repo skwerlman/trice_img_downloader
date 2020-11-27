@@ -1,5 +1,7 @@
 import Config
 
-config :logger, :console,
+config :logger, LoggerFileBackend,
   default_level: :debug,
-  format: "$time [$level]$levelpad $message\n"
+  metadata: [:application, :module, :function],
+  format: "$time $metadata[$level]$levelpad $message\n",
+  path: "log/scrybot.log"
