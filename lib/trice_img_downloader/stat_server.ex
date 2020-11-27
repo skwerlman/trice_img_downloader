@@ -60,7 +60,7 @@ defmodule TriceImgDownloader.StatServer do
     runtime = Time.diff(Time.utc_now(), started, :second)
 
     total_handled = downloaded_cards + skipped_cards + errored_cards
-    percent_done = round((total_handled / total_cards) * 100)
+    percent_done = round(total_handled / total_cards * 100)
 
     info([
       "\n",
