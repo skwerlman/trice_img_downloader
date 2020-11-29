@@ -19,10 +19,10 @@ defmodule TriceImgDownloader.Application do
 
     children = [
       TriceImgDownloader.StatServer,
-      # {TriceImgDownloader.ConfigServer, config_root},
-      # TriceImgDownloader.Scryfall,
-      # {TriceImgDownloader.XMLReader, config_root},
-      # TriceImgDownloader.DownloadAgent,
+      {TriceImgDownloader.ConfigServer, config_root},
+      TriceImgDownloader.Scryfall,
+      {TriceImgDownloader.XMLReader, config_root},
+      TriceImgDownloader.DownloadAgent,
       {Ratatouille.Runtime.Supervisor, runtime: tui_opts}
     ]
 
