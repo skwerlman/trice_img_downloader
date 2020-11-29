@@ -3,7 +3,7 @@ defmodule TriceImgDownloader.StatServer do
   use GenServer
   use TriceImgDownloader.LogMacros
 
-  @default_tick_rate 10_000
+  @default_tick_rate 1_000
 
   defstruct tick_rate: @default_tick_rate,
             total_cards: 0,
@@ -39,7 +39,7 @@ defmodule TriceImgDownloader.StatServer do
         @default_tick_rate
       end
 
-    Process.send_after(self(), :print_tick, tick_rate)
+    # Process.send_after(self(), :print_tick, tick_rate)
 
     {:ok, %__MODULE__{tick_rate: tick_rate, start_time: Time.utc_now()}}
   end
@@ -48,7 +48,7 @@ defmodule TriceImgDownloader.StatServer do
   def handle_info(
         :print_tick,
         %__MODULE__{
-          tick_rate: tick_rate,
+          tick_rate: _tick_rate,
           total_cards: total_cards,
           downloaded_cards: downloaded_cards,
           skipped_cards: skipped_cards,
@@ -60,7 +60,12 @@ defmodule TriceImgDownloader.StatServer do
     runtime = Time.diff(Time.utc_now(), started, :second)
 
     total_handled = downloaded_cards + skipped_cards + errored_cards
-    percent_done = round(total_handled / total_cards * 100)
+
+    percent_done =
+      case total_cards do
+        0 -> 0
+        _ -> round(total_handled / total_cards * 100)
+      end
 
     info([
       "\n",
@@ -75,7 +80,7 @@ defmodule TriceImgDownloader.StatServer do
       ["Completion:       ", Integer.to_string(percent_done), "%"]
     ])
 
-    Process.send_after(self(), :print_tick, tick_rate)
+    # Process.send_after(self(), :print_tick, tick_rate)
 
     {:noreply, state}
   end

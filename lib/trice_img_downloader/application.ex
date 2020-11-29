@@ -10,15 +10,27 @@ defmodule TriceImgDownloader.Application do
     config_root = Application.get_env(:trice_img_downloader, :config_root)
     info("starting #{to_string(__MODULE__)}")
 
+    tui_opts = [
+      app: TriceImgDownloader.Interface,
+      # shutdown: {:application, :trice_img_downloader},
+      shutdown: :system,
+      interval: 250
+    ]
+
     children = [
       TriceImgDownloader.StatServer,
-      {TriceImgDownloader.ConfigServer, config_root},
-      TriceImgDownloader.Scryfall,
-      {TriceImgDownloader.XMLReader, config_root},
-      TriceImgDownloader.DownloadAgent
+      # {TriceImgDownloader.ConfigServer, config_root},
+      # TriceImgDownloader.Scryfall,
+      # {TriceImgDownloader.XMLReader, config_root},
+      # TriceImgDownloader.DownloadAgent,
+      {Ratatouille.Runtime.Supervisor, runtime: tui_opts}
     ]
 
     opts = [strategy: :one_for_one, name: TriceImgDownloader.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  def stop(_) do
+    IO.puts("Quitting...")
   end
 end
