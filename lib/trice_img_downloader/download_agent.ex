@@ -120,10 +120,9 @@ defmodule TriceImgDownloader.DownloadAgent do
   end
 
   defp download(uri, _) when is_binary(uri) do
-    with {:ok, res} <- Api.image(uri) do
-      {:ok, res.body}
-    else
-      resp -> resp
+    case Api.image(uri) do
+      {:ok, res} -> {:ok, res.body}
+      res -> res
     end
   end
 
