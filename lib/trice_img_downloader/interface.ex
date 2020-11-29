@@ -83,7 +83,7 @@ defmodule TriceImgDownloader.Interface do
         end
 
       event ->
-        debug(inspect(event))
+        # debug(inspect(event))
         {{model, log}, event}
     end
   end
