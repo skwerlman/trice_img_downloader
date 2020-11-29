@@ -69,6 +69,7 @@ defmodule TriceImgDownloader.DownloadAgent do
                        normalize(card.name)
                      }.jpg",
                    :ok <- File.mkdir_p(folder),
+                   {:file_check, false} <- {:file_check, File.exists?(path)},
                    art_uris when is_binary(art_uris) or is_map_key(art_uris, size) <-
                      get_info(set),
                    {:ok, blob} <- download(art_uris, size),
@@ -77,6 +78,10 @@ defmodule TriceImgDownloader.DownloadAgent do
                 File.close(file)
                 GenServer.cast(TriceImgDownloader.StatServer, :downloaded_card)
               else
+                {:file_check, true} ->
+                  warn(["Skipping download for already downloaded card: ", card.name])
+                  GenServer.cast(TriceImgDownloader.StatServer, :skipped_card)
+
                 {:error, :eexist} ->
                   warn(["Skipping download for already downloaded card: ", card.name])
                   GenServer.cast(TriceImgDownloader.StatServer, :skipped_card)

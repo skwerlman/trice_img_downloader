@@ -14,7 +14,7 @@ defmodule TriceImgDownloader.Application do
       app: TriceImgDownloader.Interface,
       # shutdown: {:application, :trice_img_downloader},
       shutdown: :system,
-      interval: 250
+      interval: 10
     ]
 
     children = [
