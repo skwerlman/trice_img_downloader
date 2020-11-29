@@ -7,10 +7,10 @@ defmodule TriceImgDownloader.Interface do
 
   @behaviour Ratatouille.App
 
-  @log_buffer_size 50
+  @ui_available_space_offset 13
 
   @impl Ratatouille.App
-  def init(_context) do
+  def init(%{window: %{height: height}}) do
     # register ourselves
     TriceImgDownloader.Supervisor
     |> Supervisor.which_children()
@@ -34,7 +34,9 @@ defmodule TriceImgDownloader.Interface do
       Process.register(pid, Ratatouille.Runtime)
     end)
 
-    {{{%StatServer{}, []}, :init},
+    empty_log = for _ <- 0..(height - @ui_available_space_offset), do: ""
+
+    {{{%StatServer{}, empty_log}, :init},
      Command.new(
        fn -> GenServer.call(StatServer, :get_stats) end,
        :stats
@@ -55,17 +57,30 @@ defmodule TriceImgDownloader.Interface do
          )}
 
       {:log, {entry, level}} ->
-        new_log =
-          case length(log) do
-            n when n == @log_buffer_size ->
-              l = log |> :lists.reverse() |> tl() |> :lists.reverse()
-              [{to_string(entry), level} | l]
+        {{model, tl(log) ++ [{to_string(entry), level}]}, :log}
 
-            _ ->
-              [{to_string(entry), level} | log]
-          end
+      {:resize, %{h: height}} ->
+        new_buffer_size = height - @ui_available_space_offset
+        offset = new_buffer_size - length(log)
 
-        {{model, new_log}, :log}
+        debug("Resizing log buffer...")
+
+        # FIXME HACK
+        # If we draw too many labels, they overflow the log panel
+        # To avoid this we need to keep the log beffer the same size
+        # as the panel.
+        case offset do
+          0 ->
+            {{model, log}, :resize}
+          o when o >= 1 ->
+            # new buffer is bigger than old buffer
+            new_log = List.duplicate("", o) ++ log
+            {{model, new_log}, :resize}
+          o when o <= -1 ->
+            # new buffer is smaller than old buffer
+            new_log = log |> Enum.drop(-o)
+            {{model, new_log}, :resize}
+        end
 
       event ->
         debug(inspect(event))
