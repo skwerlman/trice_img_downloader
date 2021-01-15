@@ -29,6 +29,7 @@ defmodule TriceImgDownloader.MixProject do
       {:logger_file_backend, "~> 0.0"},
       {:qex, "~> 0.5"},
       {:ratatouille, "~> 0.5"},
+      {:ring_logger, "~> 0.8"},
       {:stream_split, "~> 0.1"},
       {:sweet_xml, "~> 0.6"},
       {:tesla, "~> 1.4"},

@@ -2,7 +2,8 @@ import Config
 
 config :logger,
   backends: [
-    {LoggerFileBackend, :debug_log}
+    {LoggerFileBackend, :debug_log},
+    RingLogger
   ]
 
 config :logger, :debug_log,
@@ -10,3 +11,5 @@ config :logger, :debug_log,
   metadata: [:application, :module, :function],
   format: "$time $metadata[$level]$levelpad $message\n",
   path: "log/downloader.log"
+
+config :logger, RingLogger, max_size: 1024

@@ -12,14 +12,6 @@ defmodule TriceImgDownloader.LogMacros do
   defmacro debug(msg) do
     quote do
       _ = Logger.debug(fn -> unquote(msg) end)
-
-      try do
-        # pretend to be the result of a command to get passed in cleanly
-        send(Ratatouille.Runtime, {:command_result, {:log, {unquote(msg), :debug}}})
-      rescue
-        _ -> :ok
-      end
-
       :ok
     end
   end
@@ -27,13 +19,6 @@ defmodule TriceImgDownloader.LogMacros do
   defmacro info(msg) do
     quote do
       _ = Logger.info(fn -> unquote(msg) end)
-
-      try do
-        send(Ratatouille.Runtime, {:command_result, {:log, {unquote(msg), :info}}})
-      rescue
-        _ -> :ok
-      end
-
       :ok
     end
   end
@@ -41,13 +26,6 @@ defmodule TriceImgDownloader.LogMacros do
   defmacro warn(msg) do
     quote do
       _ = Logger.warn(fn -> unquote(msg) end)
-
-      try do
-        send(Ratatouille.Runtime, {:command_result, {:log, {unquote(msg), :warn}}})
-      rescue
-        _ -> :ok
-      end
-
       :ok
     end
   end
@@ -55,13 +33,6 @@ defmodule TriceImgDownloader.LogMacros do
   defmacro error(msg) do
     quote do
       _ = Logger.error(fn -> unquote(msg) end)
-
-      try do
-        send(TRatatouille.Runtime, {:command_result, {:log, {unquote(msg), :error}}})
-      rescue
-        _ -> :ok
-      end
-
       :ok
     end
   end

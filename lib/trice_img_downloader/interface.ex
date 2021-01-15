@@ -2,8 +2,15 @@ defmodule TriceImgDownloader.Interface do
   @moduledoc false
   use TriceImgDownloader.LogMacros
   import Ratatouille.View
-  alias Ratatouille.Runtime.Command
+  alias Ratatouille.Runtime.{Command, Subscription}
   alias TriceImgDownloader.StatServer
+
+  @type model :: %{
+          noise: boolean(),
+          log_size: integer(),
+          stats: StatServer.state(),
+          last_event: atom()
+        }
 
   @behaviour Ratatouille.App
 
@@ -34,9 +41,9 @@ defmodule TriceImgDownloader.Interface do
       Process.register(pid, Ratatouille.Runtime)
     end)
 
-    empty_log = for _ <- 0..(height - @ui_available_space_offset), do: ""
+    max = height - @ui_available_space_offset
 
-    {{{%StatServer{}, empty_log}, :init},
+    {%{stats: %StatServer{}, log_size: max, last_event: :init, noise: true},
      Command.new(
        fn -> GenServer.call(StatServer, :get_stats) end,
        :stats
@@ -44,64 +51,60 @@ defmodule TriceImgDownloader.Interface do
   end
 
   @impl Ratatouille.App
-  def update({{model, log}, _}, msg) do
+  def update(%{noise: noise} = model, msg) do
     case msg do
-      {:stats, stats} ->
-        {{stats, log}, :stats}
+      {:stats, new_stats} ->
+        %{model | stats: new_stats, last_event: :stats}
 
       :tick ->
-        {{{model, log}, :tick},
-         Command.new(
-           fn -> GenServer.call(StatServer, :get_stats) end,
-           :stats
-         )}
+        {
+          %{model | last_event: :tick},
+          Command.new(
+            fn -> GenServer.call(StatServer, :get_stats) end,
+            :stats
+          )
+        }
 
-      {:log, {entry, level}} ->
-        {{model, tl(log) ++ [{to_string(entry), level}]}, :log}
+      :log ->
+        %{model | noise: not noise, last_event: :log}
 
       {:resize, %{h: height}} ->
-        new_buffer_size = height - @ui_available_space_offset
-        offset = new_buffer_size - length(log)
-
-        debug("Resizing log buffer...")
-
         # FIXME HACK
         # If we draw too many labels, they overflow the log panel
         # To avoid this we need to keep the log beffer the same size
         # as the panel.
-        case offset do
-          0 ->
-            {{model, log}, :resize}
-          o when o >= 1 ->
-            # new buffer is bigger than old buffer
-            new_log = List.duplicate("", o) ++ log
-            {{model, new_log}, :resize}
-          o when o <= -1 ->
-            # new buffer is smaller than old buffer
-            new_log = log |> Enum.drop(-o)
-            {{model, new_log}, :resize}
-        end
+        new_buffer_size = height - @ui_available_space_offset
 
-      event ->
-        # debug(inspect(event))
-        {{model, log}, event}
+        debug("Resizing log buffer...")
+
+        %{model | log_size: new_buffer_size, last_event: :resize}
+
+      _event ->
+        model
     end
   end
 
   @impl Ratatouille.App
   def subscribe(_model) do
-    Ratatouille.Runtime.Subscription.interval(1_000, :tick)
+    Subscription.batch([
+      Subscription.interval(1_000, :tick),
+      Subscription.interval(100, :log)
+    ])
   end
 
   @impl Ratatouille.App
-  def render({{model, log}, last_event}) do
-    total_handled = model.downloaded_cards + model.skipped_cards + model.errored_cards
+  def render(%{stats: stats, log_size: log_size, last_event: last_event}) do
+    total_handled = stats.downloaded_cards + stats.skipped_cards + stats.errored_cards
 
     percent_done =
-      case model.total_cards do
+      case stats.total_cards do
         0 -> 0
-        _ -> round(total_handled / model.total_cards * 100)
+        _ -> round(total_handled / stats.total_cards * 100)
       end
+
+    log_entries =
+      RingLogger.get()
+      |> Enum.take(-log_size)
 
     footer =
       bar do
@@ -129,11 +132,11 @@ defmodule TriceImgDownloader.Interface do
 
             column(size: 1) do
               label do
-                text(content: Integer.to_string(model.total_cards), color: :blue)
+                text(content: Integer.to_string(stats.total_cards), color: :blue)
               end
 
               label do
-                text(content: Integer.to_string(model.downloaded_cards), color: :green)
+                text(content: Integer.to_string(stats.downloaded_cards), color: :green)
               end
             end
 
@@ -149,11 +152,11 @@ defmodule TriceImgDownloader.Interface do
 
             column(size: 1) do
               label do
-                text(content: Integer.to_string(model.skipped_cards), color: :yellow)
+                text(content: Integer.to_string(stats.skipped_cards), color: :yellow)
               end
 
               label do
-                text(content: Integer.to_string(model.errored_cards), color: :red)
+                text(content: Integer.to_string(stats.errored_cards), color: :red)
               end
             end
 
@@ -177,9 +180,9 @@ defmodule TriceImgDownloader.Interface do
         end
 
         panel(height: :fill, title: " Log ") do
-          for {entry, level} <- log do
+          for {level, {_module, entry, _time, _meta}} <- log_entries do
             label do
-              text(content: entry, color: level_to_color(level))
+              text(content: String.replace(entry, "\n", " "), color: level_to_color(level))
             end
           end
         end
