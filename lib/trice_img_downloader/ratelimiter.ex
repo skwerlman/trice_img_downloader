@@ -3,6 +3,13 @@ defmodule TriceImgDownloader.Ratelimiter.Middleware do
   @behaviour Tesla.Middleware
   use TriceImgDownloader.LogMacros
 
+  @spec call(Tesla.Env.t(), Tesla.Env.stack(), any()) :: Tesla.Env.result()
+  def call(env, next, bucket_info) do
+    :ok = block_while_limited(bucket_info)
+
+    Tesla.run(env, next)
+  end
+
   defp block_while_limited({name, timeframe, requests} = bucket_info) do
     {status, _remaining} = ExRated.check_rate(name, timeframe, requests)
 
@@ -15,12 +22,5 @@ defmodule TriceImgDownloader.Ratelimiter.Middleware do
         _ = Process.sleep(500)
         block_while_limited(bucket_info)
     end
-  end
-
-  @spec call(Tesla.Env.t(), Tesla.Env.stack(), any()) :: Tesla.Env.result()
-  def call(env, next, bucket_info) do
-    :ok = block_while_limited(bucket_info)
-
-    Tesla.run(env, next)
   end
 end
