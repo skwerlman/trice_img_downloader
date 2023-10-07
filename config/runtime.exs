@@ -9,7 +9,8 @@ config :logger,
 config :logger, :debug_log,
   default_level: :debug,
   metadata: [:application, :module, :function],
-  format: "$time $metadata[$level]$levelpad $message\n",
+  # format: "$time $metadata[$level] $message\n",
+  format: "$time [$level] $message\n",
   path: "log/downloader.log"
 
 config :logger, RingLogger, max_size: 1024
