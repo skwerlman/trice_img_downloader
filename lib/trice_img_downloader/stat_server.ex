@@ -11,7 +11,8 @@ defmodule TriceImgDownloader.StatServer do
             skipped_cards: 0,
             errored_cards: 0,
             queue_refreshes: 0,
-            start_time: nil
+            start_time: nil,
+            end_time: nil
 
   @type state :: %__MODULE__{
           tick_rate: integer(),
@@ -20,7 +21,8 @@ defmodule TriceImgDownloader.StatServer do
           skipped_cards: integer(),
           errored_cards: integer(),
           queue_refreshes: integer(),
-          start_time: Time.t()
+          start_time: Time.t() | nil,
+          end_time: Time.t() | nil
         }
 
   def start_link(arg) do
@@ -45,7 +47,7 @@ defmodule TriceImgDownloader.StatServer do
   end
 
   @impl GenServer
-  def handle_info(
+  def handle_cast(
         :print_tick,
         %__MODULE__{
           tick_rate: _tick_rate,
@@ -86,6 +88,10 @@ defmodule TriceImgDownloader.StatServer do
   end
 
   @impl GenServer
+  def handle_cast({:download_started}, state) do
+    {:noreply, %__MODULE__{state | start_time: Time.utc_now()}}
+  end
+
   def handle_cast({:loaded_cards, count}, %{total_cards: cards} = state) do
     {:noreply, %__MODULE__{state | total_cards: cards + count}}
   end
