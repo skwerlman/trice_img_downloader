@@ -95,7 +95,7 @@ defmodule TriceImgDownloader.XMLReader do
   end
 
   def handle_info(:dispatch_some, {paths, chunks}) do
-    {_chunk, rest} = StreamSplit.pop(@batch_size)
+    {_chunk, rest} = StreamSplit.pop(chunks)
 
     {:noreply, {paths, rest}}
   end
