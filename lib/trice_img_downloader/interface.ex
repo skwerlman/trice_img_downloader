@@ -14,7 +14,7 @@ defmodule TriceImgDownloader.Interface do
 
   @behaviour Ratatouille.App
 
-  @ui_available_space_offset 13
+  @ui_available_space_offset 14
 
   @impl Ratatouille.App
   def init(%{window: %{height: height}}) do
@@ -194,5 +194,5 @@ defmodule TriceImgDownloader.Interface do
   defp level_to_color(:error), do: :red
   defp level_to_color(:warn), do: :yellow
   defp level_to_color(:info), do: :white
-  defp level_to_color(:debug), do: :cyan
+  defp level_to_color(:debug), do: :blue
 end

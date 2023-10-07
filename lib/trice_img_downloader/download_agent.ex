@@ -49,7 +49,7 @@ defmodule TriceImgDownloader.DownloadAgent do
               queue
 
             :none ->
-              debug(["No enabled sets for ", card.name])
+              warn(["No enabled sets for ", card.name])
               {_, q} = Qex.pop!(queue)
               send(self(), :download_one)
               GenServer.cast(TriceImgDownloader.StatServer, :skipped_card)
@@ -79,15 +79,22 @@ defmodule TriceImgDownloader.DownloadAgent do
                 GenServer.cast(TriceImgDownloader.StatServer, :downloaded_card)
               else
                 {:file_check, true} ->
-                  warn(["Skipping download for already downloaded card: ", card.name])
+                  debug(["Already downloaded card: ", card.name])
                   GenServer.cast(TriceImgDownloader.StatServer, :skipped_card)
 
                 {:error, :eexist} ->
-                  warn(["Skipping download for already downloaded card: ", card.name])
+                  debug(["Already downloaded card: ", card.name])
                   GenServer.cast(TriceImgDownloader.StatServer, :skipped_card)
 
                 err ->
-                  error(["Failed to download art for ", card.name, "\n", inspect(err)])
+                  error([
+                    "Failed to download art for ",
+                    card.name,
+                    "\n",
+                    "Reason: ",
+                    inspect(err, pretty: true, limit: :infinity, printable_limit: :infinity)
+                  ])
+
                   GenServer.cast(TriceImgDownloader.StatServer, :errored_card)
               end
 

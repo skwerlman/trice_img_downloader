@@ -18,7 +18,7 @@ defmodule TriceImgDownloader.Ratelimiter.Middleware do
         :ok
 
       :error ->
-        warn("ratelimited; sleeping for 500ms")
+        debug("ratelimited; sleeping for 500ms")
         _ = Process.sleep(500)
         block_while_limited(bucket_info)
     end
