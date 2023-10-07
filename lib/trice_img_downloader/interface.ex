@@ -9,7 +9,9 @@ defmodule TriceImgDownloader.Interface do
           noise: boolean(),
           log_size: integer(),
           stats: StatServer.state(),
-          last_event: atom()
+          last_event: atom(),
+          log_filter: (map() -> boolean()),
+          level: Logger.level()
         }
 
   @behaviour Ratatouille.App
@@ -44,7 +46,7 @@ defmodule TriceImgDownloader.Interface do
 
     max = height - @ui_available_space_offset
 
-    {%{stats: %StatServer{}, log_size: max, last_event: :init, noise: true},
+    {%{stats: %StatServer{}, log_size: max, last_event: :init, noise: true, log_filter: log_filter(Logger.level()), level: Logger.level()},
      Command.new(
        fn -> GenServer.call(StatServer, :get_stats) end,
        :stats
@@ -80,6 +82,14 @@ defmodule TriceImgDownloader.Interface do
 
         %{model | log_size: new_buffer_size, last_event: :resize}
 
+      {:event, %{ch: ?l}} ->
+        l = next_level(model.level)
+        %{model | log_filter: log_filter(l), level: l, last_event: :set_level}
+
+      {:event, %{ch: ?L}} ->
+        l = prev_level(model.level)
+        %{model | log_filter: log_filter(l), level: l, last_event: :set_level}
+
       _event ->
         model
     end
@@ -94,7 +104,7 @@ defmodule TriceImgDownloader.Interface do
   end
 
   @impl Ratatouille.App
-  def render(%{stats: stats, log_size: log_size, last_event: last_event}) do
+  def render(%{stats: stats, log_size: log_size, last_event: last_event, log_filter: filter, level: level}) do
     total_handled = stats.downloaded_cards + stats.skipped_cards + stats.errored_cards
 
     percent_done =
@@ -105,12 +115,18 @@ defmodule TriceImgDownloader.Interface do
 
     log_entries =
       RingLogger.get()
+      |> Enum.filter(filter)
       |> Enum.take(-log_size)
 
     footer =
       bar do
         label do
           text(content: "Press 'q' to quit")
+          text(content: " | ")
+          text(content: "Press 'l' to cycle log level")
+          text(content: " | ")
+          text(content: "Log Level: ", color: :cyan)
+          text(content: inspect(level), color: :cyan)
           text(content: " | ")
           text(content: "Last Event: ", color: :cyan)
           text(content: inspect(last_event), color: :cyan)
@@ -191,6 +207,22 @@ defmodule TriceImgDownloader.Interface do
       end
     end
   end
+
+  defp log_filter(level) do
+    fn %{level: l} ->
+      Logger.compare_levels(l, level) != :lt
+    end
+  end
+
+  defp next_level(:debug), do: :info
+  defp next_level(:info), do: :warn
+  defp next_level(:warn), do: :error
+  defp next_level(:error), do: :debug
+
+  defp prev_level(:debug), do: :error
+  defp prev_level(:info), do: :debug
+  defp prev_level(:warn), do: :info
+  defp prev_level(:error), do: :warn
 
   defp level_to_color(:error), do: :red
   defp level_to_color(:warn), do: :yellow
