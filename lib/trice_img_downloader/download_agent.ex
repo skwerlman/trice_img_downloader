@@ -65,15 +65,13 @@ defmodule TriceImgDownloader.DownloadAgent do
                    size <- Application.get_env(:trice_img_downloader, :img_size, "large"),
                    folder <- "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/",
                    path <-
-                     "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/#{
-                       normalize(card.name)
-                     }.jpg",
-                   :ok <- File.mkdir_p(folder),
+                     "#{base_path}/pics/downloadedPics/#{set_normalize(set_name)}/#{normalize(card.name)}.jpg",
+                   {:mkdir, :ok} <- {:mkdir, File.mkdir_p(folder)},
                    {:file_check, false} <- {:file_check, File.exists?(path)},
-                   art_uris when is_binary(art_uris) or is_map_key(art_uris, size) <-
-                     get_info(set),
-                   {:ok, blob} <- download(art_uris, size),
-                   {:ok, file} <- File.open(path, [:write, :exclusive, :binary]) do
+                   {:get_info, art_uris} when is_binary(art_uris) or is_map_key(art_uris, size) <-
+                     {:get_info, get_info(set)},
+                   {:download, {:ok, blob}} <- {:download, download(art_uris, size)},
+                   {:open, {:ok, file}} <- {:open, File.open(path, [:write, :exclusive, :binary])} do
                 IO.binwrite(file, blob)
                 File.close(file)
                 GenServer.cast(TriceImgDownloader.StatServer, :downloaded_card)
@@ -116,9 +114,16 @@ defmodule TriceImgDownloader.DownloadAgent do
   defp get_info(%{uuid: uuid}) when is_binary(uuid) and uuid != "" do
     with {:ok, res} <- Api.cards(uuid, []),
          body <- res.body do
-      body["image_uris"]
+      case body["image_uris"] do
+        nil ->
+          Enum.at(body["card_faces"], 0)["image_uris"]
+
+        uris ->
+          uris
+      end
     else
-      resp -> resp
+      resp ->
+        resp
     end
   end
 
