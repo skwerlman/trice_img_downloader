@@ -8,7 +8,7 @@ defmodule TriceImgDownloader.Scryfall do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec init(:ok) :: {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}}
+  @impl Supervisor
   def init(:ok) do
     info("starting #{to_string(__MODULE__)}")
 

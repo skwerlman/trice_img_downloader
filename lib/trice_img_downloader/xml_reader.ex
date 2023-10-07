@@ -6,6 +6,7 @@ defmodule TriceImgDownloader.XMLReader do
 
   @batch_size 100
 
+  @spec start_link(any) :: {:error, any} | {:ok, pid}
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg, name: __MODULE__)
   end
