@@ -22,19 +22,18 @@ defmodule TriceImgDownloader.MixProject do
 
   defp deps do
     [
-      {:con_cache, "~> 0.14"},
+      {:con_cache, "~> 1.0"},
       {:configparser_ex, "~> 4.0"},
-      {:ex_rated, "~> 2.0"},
-      {:jason, "~> 1.2"},
+      {:ex_rated, "~> 2.1"},
+      {:jason, "~> 1.4"},
       {:logger_file_backend, "~> 0.0"},
       {:qex, "~> 0.5"},
       {:ratatouille, "~> 0.5"},
-      {:ring_logger, "~> 0.8"},
-      {:stream_split, "~> 0.1"},
-      {:sweet_xml, "~> 0.6"},
-      {:tesla, "~> 1.4"},
-      {:dialyxir, "~> 1.0", runtime: false, only: [:dev, :test]},
-      {:credo, "~> 1.5", runtime: false, only: [:dev, :test]}
+      {:ring_logger, "~> 0.10"},
+      {:sweet_xml, "~> 0.7"},
+      {:tesla, "~> 1.7"},
+      {:dialyxir, "~> 1.4", runtime: false, only: [:dev, :test]},
+      {:credo, "~> 1.7", runtime: false, only: [:dev, :test]}
     ]
   end
 

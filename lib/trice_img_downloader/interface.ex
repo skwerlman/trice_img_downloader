@@ -180,13 +180,14 @@ defmodule TriceImgDownloader.Interface do
           end
         end
 
-        panel(height: :fill, title: " Log ") do
-          for {level, {_module, entry, _time, _meta}} <- log_entries do
+        panel(
+          [height: :fill, title: " Log "],
+          for %{level: level, message: entry} <- log_entries do
             label do
               text(content: String.replace(entry, "\n", " "), color: level_to_color(level))
             end
           end
-        end
+        )
       end
     end
   end
