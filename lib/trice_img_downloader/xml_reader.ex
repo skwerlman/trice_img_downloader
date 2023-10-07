@@ -32,87 +32,83 @@ defmodule TriceImgDownloader.XMLReader do
 
     send(self(), :STARTUP)
 
-    {:ok, {xml_paths, [], []}}
+    {:ok, {xml_paths, []}}
   end
 
   @impl GenServer
-  def handle_info(:STARTUP, {[], _, _} = state) do
-    send(self(), :dispatch_some)
+  def handle_info(:STARTUP, {[], _} = state) do
+    debug("Finished processing XMLs")
     {:noreply, state}
   end
 
-  def handle_info(:STARTUP, {[{xml_path, needed} | paths], ostream, handles}) do
-    send(self(), :STARTUP)
-
-    {stream, handle} =
+  def handle_info(:STARTUP, {[{xml_path, needed} | paths], ostream}) do
+    nstream =
       if File.exists?(xml_path) do
         debug(["Processesing ", xml_path])
 
         handle = File.stream!(xml_path)
 
-        cards =
+        stream =
           handle
           |> SweetXml.stream_tags([:card],
             namespace_conformant: true,
             discard: [:sets, :cards, :info, :prop, :text]
           )
-          # We have to be eager here
-          # If we use a stream instead,
-          # GenServer incorrectly captures
-          # a :wait message meant for the
-          # stream_tags iterator
-          |> Enum.map(fn {_, doc} ->
-            SweetXml.xpath(
-              doc,
-              ~x".",
-              name: ~x"./name/text()"s,
-              sets: [
-                ~x"./set"l,
-                name: ~x"./text()"s,
-                uuid: ~x"./@uuid"s,
-                muid: ~x"./@muid"s,
-                picurl: ~x"./@picURL"s
-              ]
-            )
-          end)
+          |> Stream.map(
+            fn {_, doc} ->
+              SweetXml.xpath(
+                doc,
+                ~x".",
+                name: ~x"./name/text()"s,
+                sets: [
+                  ~x"./set"l,
+                  name: ~x"./text()"s,
+                  uuid: ~x"./@uuid"s,
+                  muid: ~x"./@muid"s,
+                  picurl: ~x"./@picURL"s
+                ]
+              )
+            end)
+          |> Stream.map(
+            fn x ->
+              GenServer.cast(TriceImgDownloader.StatServer, {:loaded_cards, 1})
+              x
+            end)
+          |> Enum.concat(ostream)
 
-        GenServer.cast(TriceImgDownloader.StatServer, {:loaded_cards, Enum.count(cards)})
-
-        stream =
-          cards
-          |> Stream.concat(ostream)
-
-        {stream, handle}
+        stream
       else
         case needed do
           :required -> raise "Cannot find file: #{xml_path}"
           :optional -> warn(["Cannot find file: ", xml_path])
         end
 
-        {ostream, nil}
+        ostream
       end
 
-    {:noreply, {paths, stream, if(handle, do: [handle | handles], else: handles)}}
+    send(self(), :STARTUP)
+
+    {:noreply, {paths, nstream}}
   end
 
-  def handle_info(:dispatch_some, {paths, stream, handles}) do
+  def handle_info(:START, state) do
+    send(self(), :dispatch_some)
+    {:noreply, state}
+  end
+
+  def handle_info(:dispatch_some, {paths, all_cards}) do
     {cards, rest} =
-      stream
-      |> StreamSplit.take_and_drop(@batch_size)
-
+      all_cards
+      |> Enum.split(@batch_size)
     if Enum.empty?(cards) do
-      info("Finished reading XMLs")
-
-      for handle <- handles do
-        File.close(handle)
-      end
+      info("Finished dispatching cards")
     else
       Enum.each(cards, fn card ->
         GenServer.cast(TriceImgDownloader.DownloadAgent, {:queue, card})
       end)
     end
 
-    {:noreply, {paths, rest, handles}}
+    {:noreply, {paths, rest}}
   end
 
   def handle_info(event, state) do
