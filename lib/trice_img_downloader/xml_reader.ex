@@ -12,7 +12,7 @@ defmodule TriceImgDownloader.XMLReader do
   end
 
   @impl GenServer
-  @spec init(any) :: {:ok, any}
+  @spec init(any) :: {:ok, any, {:continue, :STARTUP}}
   def init(cfg_root) do
     info("starting #{to_string(__MODULE__)}")
 
@@ -29,19 +29,16 @@ defmodule TriceImgDownloader.XMLReader do
             0
         end
       end)
-
-    send(self(), :STARTUP)
-
-    {:ok, {xml_paths, []}}
+    {:ok, {xml_paths, []}, {:continue, :STARTUP}}
   end
 
   @impl GenServer
-  def handle_info(:STARTUP, {[], _} = state) do
+  def handle_continue(:STARTUP, {[], _} = state) do
     debug("Finished processing XMLs")
     {:noreply, state}
   end
 
-  def handle_info(:STARTUP, {[{xml_path, needed} | paths], ostream}) do
+  def handle_continue(:STARTUP, {[{xml_path, needed} | paths], ostream}) do
     nstream =
       if File.exists?(xml_path) do
         debug(["Processesing ", xml_path])
@@ -86,11 +83,10 @@ defmodule TriceImgDownloader.XMLReader do
         ostream
       end
 
-    send(self(), :STARTUP)
-
-    {:noreply, {paths, nstream}}
+    {:noreply, {paths, nstream}, {:continue, :STARTUP}}
   end
 
+  @impl GenServer
   def handle_info(:START, state) do
     send(self(), :dispatch_some)
     {:noreply, state}
