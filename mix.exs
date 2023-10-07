@@ -31,6 +31,7 @@ defmodule TriceImgDownloader.MixProject do
       {:ratatouille, "~> 0.5"},
       {:ring_logger, "~> 0.10"},
       {:sweet_xml, "~> 0.7"},
+      {:stream_split, "~> 0.1"},
       {:tesla, "~> 1.7"},
       {:dialyxir, "~> 1.4", runtime: false, only: [:dev, :test]},
       {:credo, "~> 1.7", runtime: false, only: [:dev, :test]}

@@ -71,6 +71,8 @@ defmodule TriceImgDownloader.XMLReader do
               GenServer.cast(TriceImgDownloader.StatServer, {:loaded_cards, 1})
               x
             end)
+          |> Stream.chunk_every(@batch_size)
+          |> Stream.map(fn chunk -> dispatch(chunk) end)
           |> Enum.concat(ostream)
 
         stream
@@ -92,17 +94,8 @@ defmodule TriceImgDownloader.XMLReader do
     {:noreply, state}
   end
 
-  def handle_info(:dispatch_some, {paths, all_cards}) do
-    {cards, rest} =
-      all_cards
-      |> Enum.split(@batch_size)
-    if Enum.empty?(cards) do
-      info("Finished dispatching cards")
-    else
-      Enum.each(cards, fn card ->
-        GenServer.cast(TriceImgDownloader.DownloadAgent, {:queue, card})
-      end)
-    end
+  def handle_info(:dispatch_some, {paths, chunks}) do
+    {_chunk, rest} = StreamSplit.pop(@batch_size)
 
     {:noreply, {paths, rest}}
   end
@@ -116,4 +109,14 @@ defmodule TriceImgDownloader.XMLReader do
   #   send(self(), :STARTUP)
   #   {:noreply, state}
   # end
+
+  defp dispatch(cards) do
+    if Enum.empty?(cards) do
+      info("Finished dispatching cards")
+    else
+      Enum.each(cards, fn card ->
+        GenServer.cast(TriceImgDownloader.DownloadAgent, {:queue, card})
+      end)
+    end
+  end
 end
