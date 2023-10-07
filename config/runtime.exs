@@ -13,4 +13,4 @@ config :logger, :debug_log,
   format: "$time [$level] $message\n",
   path: "log/downloader.log"
 
-config :logger, RingLogger, max_size: 1024
+config :logger, RingLogger, max_size: 10240
