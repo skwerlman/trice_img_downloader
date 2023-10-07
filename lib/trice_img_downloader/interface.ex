@@ -99,7 +99,7 @@ defmodule TriceImgDownloader.Interface do
   def subscribe(_model) do
     Subscription.batch([
       Subscription.interval(1_000, :tick),
-      Subscription.interval(100, :log)
+      Subscription.interval(750, :log)
     ])
   end
 
