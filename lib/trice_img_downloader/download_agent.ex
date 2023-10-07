@@ -12,9 +12,8 @@ defmodule TriceImgDownloader.DownloadAgent do
   @impl GenServer
   @spec init(any) :: {:ok, Qex.t()}
   def init(_) do
-    info("Starting...")
-    # Process.send_after(self(), :download_one, 500)
-    send(self(), :download_one)
+    info("starting #{to_string(__MODULE__)}")
+    Process.send_after(self(), :download_one, 500)
     {:ok, Qex.new()}
   end
 

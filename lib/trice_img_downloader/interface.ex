@@ -18,6 +18,7 @@ defmodule TriceImgDownloader.Interface do
 
   @impl Ratatouille.App
   def init(%{window: %{height: height}}) do
+    info("starting #{to_string(__MODULE__)}")
     # register ourselves
     TriceImgDownloader.Supervisor
     |> Supervisor.which_children()

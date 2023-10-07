@@ -30,7 +30,7 @@ defmodule TriceImgDownloader.StatServer do
   @impl GenServer
   @spec init(any) :: {:ok, state}
   def init(maybe_tick_rate) do
-    info("Starting...")
+    info("starting #{to_string(__MODULE__)}")
 
     tick_rate =
       if is_integer(maybe_tick_rate) do

@@ -13,7 +13,7 @@ defmodule TriceImgDownloader.XMLReader do
   @impl GenServer
   @spec init(any) :: {:ok, any}
   def init(cfg_root) do
-    info("Starting...")
+    info("starting #{to_string(__MODULE__)}")
 
     xml_paths =
       Application.get_env(:trice_img_downloader, :xmls)

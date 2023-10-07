@@ -16,7 +16,7 @@ defmodule TriceImgDownloader.ConfigServer do
   @impl GenServer
   @spec init(config_folder :: Path.t()) :: {:ok, state}
   def init(config_folder) do
-    info("Starting...")
+    info("starting #{to_string(__MODULE__)}")
 
     database_settings =
       Path.join([

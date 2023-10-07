@@ -10,7 +10,7 @@ defmodule TriceImgDownloader.Scryfall do
 
   @spec init(:ok) :: {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}}
   def init(:ok) do
-    info("Starting...")
+    info("starting #{to_string(__MODULE__)}")
 
     children = [
       {ConCache,
