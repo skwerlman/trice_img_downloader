@@ -6,7 +6,7 @@ defmodule TriceImgDownloader.Scryfall.Cache.Middleware do
   alias TriceImgDownloader.Scryfall
 
   @impl Tesla.Middleware
-  @spec call(atom | %Tesla.Env{query: any, url: any}, any, any) :: Tesla.Env.result()
+  @spec call(atom | Tesla.Env.t(), any, any) :: Tesla.Env.result()
   def call(env, next, _options) do
     case ConCache.get(Scryfall.cache_id(), {env.url, env.query}) do
       nil ->
