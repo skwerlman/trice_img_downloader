@@ -10,8 +10,8 @@ defmodule TriceImgDownloader.Scryfall.Api do
   plug(Tesla.Middleware.BaseUrl, @scryfall_uri)
   plug(Tesla.Middleware.Timeout, timeout: 4000)
   plug(Tesla.Middleware.Retry, delay: 125, max_retries: 3)
-  plug(Tesla.Middleware.Compression)
   plug(Tesla.Middleware.DecodeJson)
+  plug(Tesla.Middleware.Compression, format: "gzip")
 
   defp handle_errors({:ok, %{body: body} = resp}) do
     case body["object"] do
@@ -35,11 +35,14 @@ defmodule TriceImgDownloader.Scryfall.Api do
         :invalid_uri ->
           "We seem to have generated a bad URI. Please report this bug."
 
+        {_, :decode, _} ->
+          "JSON decode error"
+
         _ ->
           "Unknown error!"
       end
 
-    {:error, reason, to_string(status)}
+    {:error, reason, status}
   end
 
   @spec image(String.t()) :: {:ok, map} | error
