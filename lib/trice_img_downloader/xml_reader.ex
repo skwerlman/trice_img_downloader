@@ -29,16 +29,17 @@ defmodule TriceImgDownloader.XMLReader do
             0
         end
       end)
-    {:ok, {xml_paths, []}, {:continue, :STARTUP}}
+    {:ok, {xml_paths, [], nil}, {:continue, :STARTUP}}
   end
 
   @impl GenServer
-  def handle_continue(:STARTUP, {[], _} = state) do
+  def handle_continue(:STARTUP, {[], _, _} = state) do
+
     debug("Finished processing XMLs")
     {:noreply, state}
   end
 
-  def handle_continue(:STARTUP, {[{xml_path, needed} | paths], ostream}) do
+  def handle_continue(:STARTUP, {[{xml_path, needed} | paths], ostream, wref}) do
     nstream =
       if File.exists?(xml_path) do
         debug(["Processesing ", xml_path])
@@ -71,11 +72,8 @@ defmodule TriceImgDownloader.XMLReader do
               GenServer.cast(TriceImgDownloader.StatServer, {:loaded_cards, 1})
               x
             end)
-          |> Stream.chunk_every(@batch_size)
-          |> Stream.map(fn chunk -> dispatch(chunk) end)
-          |> Enum.concat(ostream)
 
-        stream
+          Stream.concat(ostream, stream)
       else
         case needed do
           :required -> raise "Cannot find file: #{xml_path}"
@@ -85,19 +83,31 @@ defmodule TriceImgDownloader.XMLReader do
         ostream
       end
 
-    {:noreply, {paths, nstream}, {:continue, :STARTUP}}
+    {:noreply, {paths, nstream, wref}, {:continue, :STARTUP}}
   end
 
   @impl GenServer
-  def handle_info(:START, state) do
-    send(self(), :dispatch_some)
-    {:noreply, state}
+  def handle_cast(:dispatch_some, {paths, cards, wref}) do
+    # sweetxml bug workaround
+    Process.send_after(self(), {:wait, wref}, 10)
+    {chunk, rest} = StreamSplit.take_and_drop(cards, @batch_size)
+
+    if Enum.empty?(chunk) do
+      info("Finished dispatching cards")
+    else
+      debug("Dispatching a chunk of cards")
+      Enum.each(chunk, fn card ->
+        GenServer.cast(TriceImgDownloader.DownloadAgent, {:queue, card})
+      end)
+    end
+
+    {:noreply, {paths, rest, nil}}
   end
 
-  def handle_info(:dispatch_some, {paths, chunks}) do
-    {_chunk, rest} = StreamSplit.pop(chunks)
-
-    {:noreply, {paths, rest}}
+  @impl GenServer
+  def handle_info({:wait, ref}, {paths, cards, _}) do
+    # save the wait ref for later, workaround for sweetxml bug
+    {:noreply, {paths, cards, ref}}
   end
 
   def handle_info(event, state) do
@@ -109,14 +119,4 @@ defmodule TriceImgDownloader.XMLReader do
   #   send(self(), :STARTUP)
   #   {:noreply, state}
   # end
-
-  defp dispatch(cards) do
-    if Enum.empty?(cards) do
-      info("Finished dispatching cards")
-    else
-      Enum.each(cards, fn card ->
-        GenServer.cast(TriceImgDownloader.DownloadAgent, {:queue, card})
-      end)
-    end
-  end
 end

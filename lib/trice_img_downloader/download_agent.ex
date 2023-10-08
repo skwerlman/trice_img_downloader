@@ -104,7 +104,7 @@ defmodule TriceImgDownloader.DownloadAgent do
         :empty ->
           info("Download queue is empty, asking XMLReader for more...")
           GenServer.cast(TriceImgDownloader.StatServer, :queue_refresh)
-          send(TriceImgDownloader.XMLReader, :dispatch_some)
+          GenServer.cast(TriceImgDownloader.XMLReader, :dispatch_some)
           queue
       end
 
